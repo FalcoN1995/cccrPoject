@@ -37,9 +37,20 @@ class ListBoxWidget(QListWidget):
                     links.append(str(url.toLocalFile()))
                 else:
                     links.append(str(url.toString()))
-            print(links)
-            print(self)
-            self.addItems(links)
+
+            items = []
+
+            for i in range(self.count()):
+                items.append(self.item(i).text())
+
+
+            if links[0]:
+                fname, ext = os.path.splitext(links[0])
+                if ext == '.pdf':
+                    if links[0] not in items:
+                        self.addItems(links)
+                else:
+                    QMessageBox.about(self, "Warning", "you can select only .pdf file.")
         else:
             event.ignore()
 
@@ -53,7 +64,7 @@ class AppDemo(QMainWindow):
 
         self.lb = QLabel('', self)
         self.lb.setGeometry(850,100,300,50)
-        self.pb = QPushButton("Get full path of a file", self)
+        self.pb = QPushButton("Input image file", self)
         self.pb.setGeometry(850,200,150,50)
 
         self.pb.clicked.connect(self.get_file_name)
@@ -71,7 +82,7 @@ class AppDemo(QMainWindow):
             if ext == '.png':
                 self.lb.setText(filename[0])
             else:
-                QMessageBox.about(self, "Warning", "you can select .png file.")
+                QMessageBox.about(self, "Warning", "you can select only .png file.")
         else:
             QMessageBox.about(self, "Warning", "You don't select anything.")
 
@@ -82,15 +93,15 @@ class AppDemo(QMainWindow):
     def makeWatermarkPDF(self):
         image = Image.open(self.lb.text(), 'r')
         clearImage = self.clearWhiteBackground(image)
-        if sys.platform == 'linux':
+        if sys.platform == 'linux' or sys.platform == 'linux2':
             clearImage.save(os.getcwd() + '/clearSample.png')
-        elif sys.platform == 'window':
+        elif sys.platform == 'win32':
             clearImage.save(os.getcwd() + '\clearSample.png')
         else:
             QMessageBox.about(self, "Warning", "Operating system is currently not supported.")
             exit(1)
 
-        if sys.platform == 'linux':
+        if sys.platform == 'linux' or sys.platform == 'linux2':
             self.imageToPDF(os.getcwd() + '/clearSample.png', os.getcwd() + '/watermarkImage.pdf')
         else:
             self.imageToPDF(os.getcwd() + '\clearSample.png', os.getcwd() + '\watermarkImage.pdf')
@@ -102,7 +113,7 @@ class AppDemo(QMainWindow):
         for i in range(self.itemListBox_view.count()):
             items.append(self.itemListBox_view.item(i).text())
             print(items)
-        if sys.platform == 'linux':
+        if sys.platform == 'linux' or sys.platform == 'linux2':
             for j in range(self.itemListBox_view.count()):
                 self.pdfMerge(os.getcwd() + '/complete' + str(j)+ '.pdf', items[j], os.getcwd() + '/watermarkImage.pdf')
         else:
