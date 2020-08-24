@@ -1,6 +1,5 @@
 import sys, os
-from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QListWidgetItem, QPushButton, QLabel, QFileDialog, \
-    QBoxLayout, QMessageBox
+from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt, QUrl
 from PIL import Image
 from reportlab.pdfgen import canvas
@@ -38,8 +37,9 @@ class ListBoxWidget(QListWidget):
                     links.append(str(url.toLocalFile()))
                 else:
                     links.append(str(url.toString()))
+            print(links)
+            print(self)
             self.addItems(links)
-
         else:
             event.ignore()
 
@@ -71,9 +71,9 @@ class AppDemo(QMainWindow):
             if ext == '.png':
                 self.lb.setText(filename[0])
             else:
-                QMessageBox.about(self, "Warning", "png 확장자를 가진 파일만 가능합니다.")
+                QMessageBox.about(self, "Warning", "you can select .png file.")
         else:
-            QMessageBox.about(self, "Warning", "파일을 선택하지 않았습니다.")
+            QMessageBox.about(self, "Warning", "You don't select anything.")
 
     def getSelectedItem(self):
         item = QListWidgetItem(self.itemListBox_view.currentItem())
@@ -81,13 +81,19 @@ class AppDemo(QMainWindow):
 
     def makeWatermarkPDF(self):
         image = Image.open(self.lb.text(), 'r')
-        print(self.lb.text())
         clearImage = self.clearWhiteBackground(image)
-        print(os.getcwd())
-        clearImage.save(os.getcwd() + '\clearSample.png')
-        print(clearImage)
+        if sys.platform == 'linux':
+            clearImage.save(os.getcwd() + '/clearSample.png')
+        elif sys.platform == 'window':
+            clearImage.save(os.getcwd() + '\clearSample.png')
+        else:
+            QMessageBox.about(self, "Warning", "Operating system is currently not supported.")
+            exit(1)
 
-        self.imageToPDF(os.getcwd() + '\clearSample.png', os.getcwd() + '\watermarkImage.pdf')
+        if sys.platform == 'linux':
+            self.imageToPDF(os.getcwd() + '/clearSample.png', os.getcwd() + '/watermarkImage.pdf')
+        else:
+            self.imageToPDF(os.getcwd() + '\clearSample.png', os.getcwd() + '\watermarkImage.pdf')
         self.selectedList = self.itemListBox_view.selectedItems()
         print(self.selectedList)
         print(self.itemListBox_view.count())
@@ -96,31 +102,28 @@ class AppDemo(QMainWindow):
         for i in range(self.itemListBox_view.count()):
             items.append(self.itemListBox_view.item(i).text())
             print(items)
-
-        for j in range(self.itemListBox_view.count()):
-            self.pdfMerge(os.getcwd() + '\complete' + str(j)+ '.pdf', items[j], os.getcwd() + '\watermarkImage.pdf')
+        if sys.platform == 'linux':
+            for j in range(self.itemListBox_view.count()):
+                self.pdfMerge(os.getcwd() + '/complete' + str(j)+ '.pdf', items[j], os.getcwd() + '/watermarkImage.pdf')
+        else:
+            for j in range(self.itemListBox_view.count()):
+                self.pdfMerge(os.getcwd() + '\complete' + str(j)+ '.pdf', items[j], os.getcwd() + '\watermarkImage.pdf')
         self.itemListBox_view.clear()
 
     def clearWhiteBackground(self, inputImage):
-        # RGBA로 속성 변경
         image = inputImage.convert('RGBA')
 
-        # 해당 이미지의 배열 받아오기
         imageData = inputImage.getdata()
 
         newImageData = []
 
         for pixel in imageData:
             if pixel[0] > 240 and pixel[1] > 240 and pixel[2] > 240:
-                # rgb값이 240,240,240 이상일 경우(흰색에 가까울 경우) 알파값을 0으로 준다
                 newImageData.append((0, 0, 0, 0))
             else:
-                # 아닐경우 그대로 쓴다
                 newImageData.append(pixel)
 
-        # 이미지를 덮어 씌움
         image.putdata(newImageData)
-        # 투명도 값 (0~255), 절반정도 투명도
         image.putalpha(128)
 
         return image
@@ -133,32 +136,24 @@ class AppDemo(QMainWindow):
         newCanvas.save()
 
     def pdfMerge(self, savePath, pdfPath, watermarkPdfPath):
-        # pdf파일 불러오기
         pdfFile = open(pdfPath, 'rb')
         pdfReader = PdfFileReader(pdfFile, strict=False)
 
-        # 워터마크 PDF파일 불러오기
         watermarkPdfFile = open(watermarkPdfPath, 'rb')
         watermarkPdf = PdfFileReader(watermarkPdfFile, strict=False).getPage(0)
 
         pdfWriter = PdfFileWriter()
 
-        # PDF 페이지 수만큼 반복
         for pageNum in range(pdfReader.numPages):
-            # 페이지를 불러온다
             pageObj = pdfReader.getPage(pageNum)
 
-            # 중앙으로 놓기 위해 좌표를 구한다
             x = (pageObj.mediaBox[2] - watermarkPdf.mediaBox[2]) / 2
             y = (pageObj.mediaBox[3] - watermarkPdf.mediaBox[3]) / 2
 
-            # 워터마크페이지와 합친다
             pageObj.mergeTranslatedPage(page2=watermarkPdf, tx=x, ty=y, expand=False)
 
-            # 합친걸 저장할 PDF파일에 추가한다
             pdfWriter.addPage(pageObj)
 
-        # 저장
         resultFile = open(savePath, 'wb')
         pdfWriter.write(resultFile)
 
