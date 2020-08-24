@@ -90,9 +90,16 @@ class AppDemo(QMainWindow):
         self.imageToPDF(os.getcwd() + '\clearSample.png', os.getcwd() + '\watermarkImage.pdf')
         self.selectedList = self.itemListBox_view.selectedItems()
         print(self.selectedList)
-        for i in self.selectedList:
-            print(i.text())
-            self.pdfMerge(os.getcwd() + '\complete.pdf', i.text(), os.getcwd() + '\watermarkImage.pdf')
+        print(self.itemListBox_view.count())
+
+        items = []
+        for i in range(self.itemListBox_view.count()):
+            items.append(self.itemListBox_view.item(i).text())
+            print(items)
+
+        for j in range(self.itemListBox_view.count()):
+            self.pdfMerge(os.getcwd() + '\complete' + str(j)+ '.pdf', items[j], os.getcwd() + '\watermarkImage.pdf')
+        self.itemListBox_view.clear()
 
     def clearWhiteBackground(self, inputImage):
         # RGBA로 속성 변경
